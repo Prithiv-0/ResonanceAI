@@ -5,6 +5,7 @@ Architecture specifications:
 Both architectures are strictly < 100M parameters and < 300 MB.
 """
 from pathlib import Path
+import os
 import time
 import numpy as np
 import torch
@@ -167,10 +168,11 @@ def get_distilhubert():
             _DISTILHUBERT_EXTRACTOR = None
     return _DISTILHUBERT_MODEL, _DISTILHUBERT_EXTRACTOR
 
-# Pre-load models
-get_wav2vec2()
-get_wav2vec2_wiam()
-get_distilhubert()
+# Pre-load models only if explicitly requested; otherwise lazy-load on first inference
+if os.getenv("RESONANCE_PRELOAD_MODELS", "false").lower() in ("true", "1", "yes"):
+    get_wav2vec2()
+    get_wav2vec2_wiam()
+    get_distilhubert()
 
 def run_live_inference_array(y: np.ndarray, sr: int, model_type: str = "wav2vec2_dpngtm") -> dict:
     """Run real PyTorch forward pass inference on audio array (mono float32)."""
