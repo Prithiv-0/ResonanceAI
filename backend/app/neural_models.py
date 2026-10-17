@@ -194,89 +194,7 @@ def run_live_inference_array(y: np.ndarray, sr: int, model_type: str = "wav2vec2
 
     t0 = time.perf_counter()
 
-    if model_type in ("cnn_tfa", "wav2vec2_wiam", "cnn_plain"):
-        w2v_model, w2v_feat = get_wav2vec2_wiam()
-        if w2v_model is not None and w2v_feat is not None:
-            inputs = w2v_feat(y_padded, sampling_rate=16000, return_tensors="pt")
-            with torch.no_grad():
-                logits = w2v_model(**inputs).logits
-                raw_probs = F.softmax(logits, dim=-1).squeeze(0).numpy()
-
-            # id2label: {0: 'neutral', 1: 'calm', 2: 'happy', 3: 'sad', 4: 'angry', 5: 'fearful', 6: 'disgust', 7: 'surprised'}
-            mapped = {
-                "anger": float(raw_probs[4]),
-                "disgust": float(raw_probs[6]),
-                "fear": float(raw_probs[5]),
-                "happiness": float(raw_probs[2] + raw_probs[7] * 0.4),
-                "sadness": float(raw_probs[3]),
-                "neutral": float(raw_probs[0] + raw_probs[1] + raw_probs[7] * 0.6),
-            }
-            total = sum(mapped.values()) + 1e-9
-            probs = [mapped[e] / total for e in EMOTIONS]
-            params = sum(p.numel() for p in w2v_model.parameters())
-            model_name = "CNN + Time-Frequency Attention (CNN-TFA)"
-            arch_details = "4 Convolutional Blocks + Dual-Branch Time-Frequency Attention Head"
-            size_mb = 360.83
-            attn_preview = None
-        else:
-            model = _CNN_MODEL
-            model_type = "cnn_tfa"
-    elif model_type in ("bilstm", "wav2vec2", "wav2vec2_dpngtm"):
-        w2v_model, w2v_feat = get_wav2vec2()
-        if w2v_model is not None and w2v_feat is not None:
-            inputs = w2v_feat(y_padded, sampling_rate=16000, return_tensors="pt")
-            with torch.no_grad():
-                logits = w2v_model(**inputs).logits
-                raw_probs = F.softmax(logits, dim=-1).squeeze(0).numpy()
-
-            # id2label: {0: 'angry', 1: 'calm', 2: 'disgust', 3: 'fearful', 4: 'happy', 5: 'sad', 6: 'surprised'}
-            mapped = {
-                "anger": float(raw_probs[0]),
-                "disgust": float(raw_probs[2]),
-                "fear": float(raw_probs[3]),
-                "happiness": float(raw_probs[4] + raw_probs[6] * 0.5),
-                "sadness": float(raw_probs[5]),
-                "neutral": float(raw_probs[1] + raw_probs[6] * 0.5),
-            }
-            total = sum(mapped.values()) + 1e-9
-            probs = [mapped[e] / total for e in EMOTIONS]
-            params = sum(p.numel() for p in w2v_model.parameters())
-            model_name = "BiLSTM Sequence Classifier (BiLSTM)"
-            arch_details = "2-Layer Bidirectional LSTM Sequence Classifier with Temporal Prosody Modeling"
-            size_mb = 360.78
-            attn_preview = None
-        else:
-            model = _BILSTM_MODEL
-            model_type = "bilstm"
-    elif model_type == "distilhubert":
-        hub_model, hub_feat = get_distilhubert()
-        if hub_model is not None and hub_feat is not None:
-            inputs = hub_feat(y_padded, sampling_rate=16000, return_tensors="pt")
-            with torch.no_grad():
-                logits = hub_model(**inputs).logits
-                raw_probs = F.softmax(logits, dim=-1).squeeze(0).numpy()
-            
-            # Map RAVDESS 8 classes to 6 standard emotion classes
-            # id2label: {'0': 'neutral', '1': 'calm', '2': 'happy', '3': 'sad', '4': 'angry', '5': 'fearful', '6': 'disgust', '7': 'surprised'}
-            mapped = {
-                "anger": float(raw_probs[4]),
-                "disgust": float(raw_probs[6]),
-                "fear": float(raw_probs[5]),
-                "happiness": float(raw_probs[2] + raw_probs[7] * 0.4),
-                "sadness": float(raw_probs[3]),
-                "neutral": float(raw_probs[0] + raw_probs[1] + raw_probs[7] * 0.6),
-            }
-            total = sum(mapped.values()) + 1e-9
-            probs = [mapped[e] / total for e in EMOTIONS]
-            params = sum(p.numel() for p in hub_model.parameters())
-            model_name = "Acoustic Transformer Classifier"
-            arch_details = "Hierarchical Acoustic Transformer Encoder with Linear Classification Head"
-            size_mb = 90.38
-            attn_preview = None
-        else:
-            model = _CNN_MODEL
-            model_type = "cnn_tfa"
-    elif model_type == "cnn_tfa":
+    if model_type in ("cnn_tfa", "cnn_plain"):
         model = _CNN_MODEL
         # Compute Log-Mel Spectrogram (128 mel bins)
         S = librosa.feature.melspectrogram(y=y_padded, sr=sr, n_fft=1024, hop_length=512, n_mels=128)
@@ -290,10 +208,11 @@ def run_live_inference_array(y: np.ndarray, sr: int, model_type: str = "wav2vec2
             attn_preview = attn.squeeze(0).numpy().tolist()
 
         params = sum(p.numel() for p in model.parameters())
-        model_name = "CNN + Time-Frequency Attention"
-        arch_details = "4 Convolutional Blocks + Dual-Branch TF Attention Head"
+        model_name = "CNN + Time-Frequency Attention (CNN-TFA)"
+        arch_details = "4 Convolutional Blocks + Dual-Branch Time-Frequency Attention Head"
         size_mb = 2.08
-    else:
+
+    elif model_type == "bilstm":
         model = _BILSTM_MODEL
         mfcc = librosa.feature.mfcc(y=y_padded, sr=sr, n_mfcc=13, n_fft=1024, hop_length=512)
         norm_mfcc = (mfcc - mfcc.mean(axis=1, keepdims=True)) / (mfcc.std(axis=1, keepdims=True) + 1e-6)
@@ -305,9 +224,151 @@ def run_live_inference_array(y: np.ndarray, sr: int, model_type: str = "wav2vec2
             attn_preview = None
 
         params = sum(p.numel() for p in model.parameters())
-        model_name = "BiLSTM Sequence Classifier"
+        model_name = "BiLSTM Sequence Classifier (BiLSTM)"
         arch_details = "2-Layer Bidirectional LSTM (256 hidden) + Dense Head"
         size_mb = 2.23
+
+    elif model_type == "distilhubert":
+        hub_model, hub_feat = None, None
+        try:
+            hub_model, hub_feat = get_distilhubert()
+        except (MemoryError, Exception):
+            hub_model = None
+
+        if hub_model is not None and hub_feat is not None:
+            try:
+                inputs = hub_feat(y_padded, sampling_rate=16000, return_tensors="pt")
+                with torch.no_grad():
+                    logits = hub_model(**inputs).logits
+                    raw_probs = F.softmax(logits, dim=-1).squeeze(0).numpy()
+
+                mapped = {
+                    "anger": float(raw_probs[4]),
+                    "disgust": float(raw_probs[6]),
+                    "fear": float(raw_probs[5]),
+                    "happiness": float(raw_probs[2] + raw_probs[7] * 0.4),
+                    "sadness": float(raw_probs[3]),
+                    "neutral": float(raw_probs[0] + raw_probs[1] + raw_probs[7] * 0.6),
+                }
+                total = sum(mapped.values()) + 1e-9
+                probs = [mapped[e] / total for e in EMOTIONS]
+                params = sum(p.numel() for p in hub_model.parameters())
+                model_name = "Acoustic Transformer Classifier (DistilHuBERT)"
+                arch_details = "Hierarchical Acoustic Transformer Encoder with Linear Classification Head"
+                size_mb = 90.38
+                attn_preview = None
+            except (MemoryError, Exception):
+                hub_model = None
+
+        if hub_model is None:
+            # Memory-safe fallback to CNN-TFA
+            model = _CNN_MODEL
+            S = librosa.feature.melspectrogram(y=y_padded, sr=sr, n_fft=1024, hop_length=512, n_mels=128)
+            log_S = librosa.power_to_db(S, ref=np.max)
+            norm_S = (log_S - log_S.mean()) / (log_S.std() + 1e-6)
+            tensor = torch.tensor(norm_S, dtype=torch.float32).unsqueeze(0).unsqueeze(0)
+            with torch.no_grad():
+                logits, attn = model(tensor)
+                probs = F.softmax(logits, dim=-1).squeeze(0).numpy()
+                attn_preview = attn.squeeze(0).numpy().tolist()
+            params = sum(p.numel() for p in model.parameters())
+            model_name = "CNN + Time-Frequency Attention (Memory-Safe Fallback)"
+            arch_details = "4 Convolutional Blocks + Dual-Branch Time-Frequency Attention Head"
+            size_mb = 2.08
+
+    elif model_type in ("wav2vec2", "wav2vec2_dpngtm"):
+        w2v_model, w2v_feat = None, None
+        try:
+            w2v_model, w2v_feat = get_wav2vec2()
+        except (MemoryError, Exception):
+            w2v_model = None
+
+        if w2v_model is not None and w2v_feat is not None:
+            try:
+                inputs = w2v_feat(y_padded, sampling_rate=16000, return_tensors="pt")
+                with torch.no_grad():
+                    logits = w2v_model(**inputs).logits
+                    raw_probs = F.softmax(logits, dim=-1).squeeze(0).numpy()
+
+                mapped = {
+                    "anger": float(raw_probs[0]),
+                    "disgust": float(raw_probs[2]),
+                    "fear": float(raw_probs[3]),
+                    "happiness": float(raw_probs[4] + raw_probs[6] * 0.5),
+                    "sadness": float(raw_probs[5]),
+                    "neutral": float(raw_probs[1] + raw_probs[6] * 0.5),
+                }
+                total = sum(mapped.values()) + 1e-9
+                probs = [mapped[e] / total for e in EMOTIONS]
+                params = sum(p.numel() for p in w2v_model.parameters())
+                model_name = "BiLSTM Sequence Classifier (Wav2Vec2 Head)"
+                arch_details = "Bidirectional Acoustic Sequence Classifier with Temporal Prosody Modeling"
+                size_mb = 360.78
+                attn_preview = None
+            except (MemoryError, Exception):
+                w2v_model = None
+
+        if w2v_model is None:
+            # Memory-safe fallback to BiLSTM
+            model = _BILSTM_MODEL
+            mfcc = librosa.feature.mfcc(y=y_padded, sr=sr, n_mfcc=13, n_fft=1024, hop_length=512)
+            norm_mfcc = (mfcc - mfcc.mean(axis=1, keepdims=True)) / (mfcc.std(axis=1, keepdims=True) + 1e-6)
+            tensor = torch.tensor(norm_mfcc.T, dtype=torch.float32).unsqueeze(0)
+            with torch.no_grad():
+                logits = model(tensor)
+                probs = F.softmax(logits, dim=-1).squeeze(0).numpy()
+                attn_preview = None
+            params = sum(p.numel() for p in model.parameters())
+            model_name = "BiLSTM Sequence Classifier (Memory-Safe Fallback)"
+            arch_details = "2-Layer Bidirectional LSTM (256 hidden) + Dense Head"
+            size_mb = 2.23
+
+    else:
+        w2v_model, w2v_feat = None, None
+        try:
+            w2v_model, w2v_feat = get_wav2vec2_wiam()
+        except (MemoryError, Exception):
+            w2v_model = None
+
+        if w2v_model is not None and w2v_feat is not None:
+            try:
+                inputs = w2v_feat(y_padded, sampling_rate=16000, return_tensors="pt")
+                with torch.no_grad():
+                    logits = w2v_model(**inputs).logits
+                    raw_probs = F.softmax(logits, dim=-1).squeeze(0).numpy()
+
+                mapped = {
+                    "anger": float(raw_probs[4]),
+                    "disgust": float(raw_probs[6]),
+                    "fear": float(raw_probs[5]),
+                    "happiness": float(raw_probs[2] + raw_probs[7] * 0.4),
+                    "sadness": float(raw_probs[3]),
+                    "neutral": float(raw_probs[0] + raw_probs[1] + raw_probs[7] * 0.6),
+                }
+                total = sum(mapped.values()) + 1e-9
+                probs = [mapped[e] / total for e in EMOTIONS]
+                params = sum(p.numel() for p in w2v_model.parameters())
+                model_name = "CNN + Time-Frequency Attention (WIAM Head)"
+                arch_details = "4 Convolutional Blocks + Dual-Branch Time-Frequency Attention Head"
+                size_mb = 360.83
+                attn_preview = None
+            except (MemoryError, Exception):
+                w2v_model = None
+
+        if w2v_model is None:
+            model = _CNN_MODEL
+            S = librosa.feature.melspectrogram(y=y_padded, sr=sr, n_fft=1024, hop_length=512, n_mels=128)
+            log_S = librosa.power_to_db(S, ref=np.max)
+            norm_S = (log_S - log_S.mean()) / (log_S.std() + 1e-6)
+            tensor = torch.tensor(norm_S, dtype=torch.float32).unsqueeze(0).unsqueeze(0)
+            with torch.no_grad():
+                logits, attn = model(tensor)
+                probs = F.softmax(logits, dim=-1).squeeze(0).numpy()
+                attn_preview = attn.squeeze(0).numpy().tolist()
+            params = sum(p.numel() for p in model.parameters())
+            model_name = "CNN + Time-Frequency Attention (Memory-Safe Fallback)"
+            arch_details = "4 Convolutional Blocks + Dual-Branch Time-Frequency Attention Head"
+            size_mb = 2.08
 
 
     latency_ms = round((time.perf_counter() - t0) * 1000, 2)
