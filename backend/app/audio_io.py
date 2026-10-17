@@ -7,6 +7,8 @@ from __future__ import annotations
 
 import hashlib
 import os
+import shutil
+import subprocess
 import tempfile
 from dataclasses import dataclass
 from pathlib import Path
@@ -93,49 +95,109 @@ async def load_upload(file: UploadFile | None) -> LoadedAudio:
             pass
 
 
-def _decode(path: str, filename: str, size: int, digest: str) -> LoadedAudio:
-    try:
-        info = sf.info(path)
-        native_sr = int(info.samplerate)
-        channels = int(info.channels)
-        container = f"{info.format}/{info.subtype}"
-        duration_est = info.duration
-    except Exception:
-        # Fallback to librosa if soundfile info fails (e.g. specialized MPEG streams)
-        try:
-            native_sr = int(librosa.get_samplerate(path))
-            duration_est = float(librosa.get_duration(path=path))
-            channels = 1
-            container = "MPEG/Audio"
-        except Exception as exc:
-            raise ApiError(
-                422,
-                "undecodable_audio",
-                "The file could not be decoded as audio. It may be corrupted or not a real audio file.",
-            ) from exc
+def _decode_ffmpeg(path: str, target_sr: int = ANALYSIS_SR) -> np.ndarray:
+    """Fallback decoder using system FFmpeg to decode any stream (e.g. non-standard MPEG/MP3/Opus)."""
+    ffmpeg_exe = shutil.which("ffmpeg")
+    if not ffmpeg_exe:
+        raise RuntimeError("FFmpeg executable not found in PATH.")
+    cmd = [
+        ffmpeg_exe,
+        "-y",
+        "-v",
+        "error",
+        "-i",
+        path,
+        "-f",
+        "f32le",
+        "-acodec",
+        "pcm_f32le",
+        "-ac",
+        "1",
+        "-ar",
+        str(target_sr),
+        "-",
+    ]
+    p = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    if p.returncode != 0 or len(p.stdout) == 0:
+        err = p.stderr.decode("utf-8", errors="ignore")
+        raise RuntimeError(f"FFmpeg decode error: {err}")
+    return np.frombuffer(p.stdout, dtype=np.float32)
 
-    if duration_est > MAX_DURATION_S:
+
+def _decode(path: str, filename: str, size: int, digest: str) -> LoadedAudio:
+    y: np.ndarray | None = None
+    native_sr = ANALYSIS_SR
+    channels = 1
+    container = "Audio/Raw"
+
+    # Stage 1: Try soundfile (direct, fast, accurate for standard WAV, FLAC, OGG, MP3)
+    try:
+        data, s_sr = sf.read(path, dtype="float32", always_2d=False)
+        native_sr = int(s_sr)
+        if data.ndim > 1:
+            channels = int(data.shape[1])
+            data = np.mean(data, axis=1)
+        else:
+            channels = 1
+        if native_sr != ANALYSIS_SR:
+            y = librosa.resample(data, orig_sr=native_sr, target_sr=ANALYSIS_SR)
+        else:
+            y = data
+        try:
+            info = sf.info(path)
+            container = f"{info.format}/{info.subtype}"
+        except Exception:
+            container = "SoundFile/Audio"
+    except Exception:
+        y = None
+
+    # Stage 2: Try librosa.load
+    if y is None or len(y) == 0:
+        try:
+            data, orig_sr = librosa.load(path, sr=ANALYSIS_SR, mono=True)
+            y = data
+            native_sr = int(orig_sr)
+            channels = 1
+            container = "Librosa/Audio"
+        except Exception:
+            y = None
+
+    # Stage 3: FFmpeg fallback (handles arbitrary ID3 tags, MPEG resync issues, webm audio)
+    if y is None or len(y) == 0:
+        try:
+            y = _decode_ffmpeg(path, ANALYSIS_SR)
+            native_sr = ANALYSIS_SR
+            channels = 1
+            container = "FFmpeg/Audio"
+        except Exception:
+            y = None
+
+    if y is None or len(y) == 0:
+        raise ApiError(
+            422,
+            "undecodable_audio",
+            "The audio stream could not be decoded. The file may be corrupt or encoded in an unsupported format.",
+        )
+
+    duration = len(y) / ANALYSIS_SR
+    if duration > MAX_DURATION_S:
         raise ApiError(
             413,
             "audio_too_long",
-            f"Audio is {duration_est:.1f} s long; the demo limit is {MAX_DURATION_S:.0f} s.",
+            f"Audio is {duration:.1f} s long; the demo limit is {MAX_DURATION_S:.0f} s.",
         )
-    try:
-        y, sr = librosa.load(path, sr=ANALYSIS_SR, mono=True)
-    except Exception as exc:  # noqa: BLE001
-        raise ApiError(422, "undecodable_audio", "The audio stream could not be decoded.") from exc
-
-    duration = len(y) / sr
     if duration < MIN_DURATION_S:
         raise ApiError(
-            422, "audio_too_short", f"Audio is {duration:.2f} s; at least {MIN_DURATION_S} s is required."
+            422,
+            "audio_too_short",
+            f"Audio is {duration:.2f} s; at least {MIN_DURATION_S} s is required.",
         )
     if not np.isfinite(y).all() or float(np.max(np.abs(y))) < 1e-6:
         raise ApiError(422, "silent_audio", "The recording is silent, so no analysis is possible.")
 
     return LoadedAudio(
         y=y.astype(np.float32),
-        sr=sr,
+        sr=ANALYSIS_SR,
         filename=filename,
         size_bytes=size,
         sha256=digest,

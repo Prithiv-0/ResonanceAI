@@ -39,8 +39,9 @@ from .simulation import simulate_from_logmel
 app = FastAPI(title="Resonance Demo API", version=APP_VERSION)
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=CORS_ORIGINS,
-    allow_methods=["GET", "POST", "OPTIONS"],
+    allow_origins=CORS_ORIGINS if CORS_ORIGINS else ["*"],
+    allow_credentials=False,
+    allow_methods=["*"],
     allow_headers=["*"],
 )
 _STARTED = time.time()
