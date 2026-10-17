@@ -1,0 +1,886 @@
+you asked
+
+adjust this to make the frontend the first step
+
+
+chatgpt response
+
+Yes. The cleanest change is to make frontend first, then build the ML/data pipeline behind it. The frontend should be a functional shell early on, not a fake UI that gets thrown away later.
+
+Use this revised prompt:
+
+You are an expert full-stack ML engineer and research-software developer.
+
+Build the complete project described in the attached/provided Markdown specification for:
+
+RESONANCE — Unified Speech Emotion Recognition
+
+The Markdown file is the PROJECT SPECIFICATION and must be treated as the primary source of truth. Read it completely before implementing anything.
+
+IMPORTANT:
+- Do not redesign the research problem.
+- Do not replace CNN/BiLSTM with Transformers, Mamba, Whisper, pretrained speech encoders, or other architectures.
+- Do not invent datasets, labels, results, or research claims.
+- Do not fabricate experimental metrics.
+- Do not silently change the documented dataset composition, six emotion classes, model architecture, evaluation protocol, intensity protocol, or noise configuration.
+- Where the specification explicitly leaves a value open for experimentation, implement a sensible configurable default and clearly mark it as configurable.
+- Keep the implementation reproducible.
+- Keep the project academically clean and suitable for a university research project.
+- Build the frontend first, but do not block frontend development on the ML pipeline being complete.
+- The frontend must use real backend interfaces once they become available; do not permanently hard-code fake results.
+
+==================================================
+TECHNOLOGY DIRECTION
+==================================================
+
+Use a practical architecture such as:
+
+Frontend:
+- React
+- TypeScript
+- Vite
+- Tailwind CSS or similarly lightweight styling
+- Recharts or another lightweight charting library if needed
+
+Backend:
+- Python
+- FastAPI
+
+ML:
+- PyTorch or TensorFlow/Keras
+- librosa
+- NumPy
+- pandas
+- scikit-learn
+- matplotlib
+
+Storage:
+- Local filesystem for audio, features, models and experiment outputs
+- SQLite only if lightweight metadata persistence is genuinely useful
+
+Do not introduce unnecessary services, databases or infrastructure.
+
+The frontend and backend should communicate through a clean REST API.
+
+==================================================
+IMPLEMENTATION WORKFLOW
+==================================================
+
+Implement the project in the following logical stages.
+
+Do not create dozens of tiny steps. Related work belongs in the same stage.
+
+--------------------------------------------------
+STEP 1 — FRONTEND FIRST: BUILD THE COMPLETE APPLICATION UI
+--------------------------------------------------
+
+Start by designing and implementing the complete Resonance frontend before implementing the ML pipeline.
+
+The frontend must establish the final product structure so that later backend/ML work plugs into an already-functional interface.
+
+Build a professional academic/research dashboard.
+
+Do NOT make it look like a generic colorful startup dashboard.
+
+Visual style:
+- clean
+- professional
+- minimal
+- technical
+- white/light neutral background
+- restrained blue/teal accent colors
+- strong typography
+- clear spacing
+- no unnecessary animations
+- no gradients unless subtle and genuinely useful
+- no excessive cards
+- no decorative illustrations
+- no "AI magic" visual effects
+- no unnecessary glassmorphism
+- no neon colors
+
+The application should contain the following major sections.
+
+1. Dashboard
+
+Show:
+- Project title: Resonance
+- Short project description
+- Dataset status
+- Model status
+- Latest experiment
+- Latest CNN result
+- Latest BiLSTM result
+- Clean/noisy evaluation status
+- quick links to major workflows
+
+2. Dataset Page
+
+Show:
+- RAVDESS sample count
+- CREMA-D sample count
+- Unified sample count
+- six emotion classes
+- speaker count
+- intensity categories
+- train/validation/test speaker counts
+- dataset validation status
+
+Include visualizations for:
+- emotion distribution
+- dataset source distribution
+- intensity distribution where applicable
+
+3. Audio Analysis Page
+
+Allow the user to:
+- upload/select a speech file
+- play the audio
+- display waveform
+- display Mel spectrogram
+- display MFCC
+- show metadata if available
+
+The UI should clearly distinguish:
+CNN input:
+Mel Spectrogram
+
+BiLSTM input:
+MFCC Sequence
+
+4. Emotion Prediction Page
+
+Provide an interface for selecting/uploading an audio file and running inference.
+
+Show:
+
+Input Audio
+↓
+CNN Prediction
+↓
+BiLSTM Prediction
+
+For each model display:
+- predicted emotion
+- probability distribution across six emotions
+- confidence
+- inference status
+
+The six classes must always appear in the same order:
+
+Anger
+Disgust
+Fear
+Happiness
+Sadness
+Neutral
+
+Do not show fake probabilities once the backend exists.
+
+During frontend-only development, use clearly labelled mock data and replace it with API results later.
+
+5. Model Comparison Page
+
+Show CNN vs BiLSTM.
+
+Include:
+- Accuracy
+- Precision
+- Recall
+- Macro-F1
+
+Show comparisons for:
+- Clean
+- Noisy
+- Denoised
+- RAVDESS Normal
+- RAVDESS Strong
+
+Add:
+- side-by-side comparison charts
+- confusion matrices
+- class-wise performance
+
+6. Robustness Page
+
+Show:
+- noise type
+- SNR
+- CNN performance
+- BiLSTM performance
+
+Noise types:
+- White/Gaussian
+- Babble/Background
+- Traffic
+
+SNR:
+- 20 dB
+- 10 dB
+- 5 dB
+
+Provide a visualization of performance degradation as SNR decreases.
+
+7. Intensity Analysis Page
+
+Show:
+
+RAVDESS:
+Normal vs Strong
+
+CREMA-D:
+Low / Medium / High / Unspecified
+
+Do not visually merge these into one common intensity scale.
+
+8. Experiments Page
+
+Display experiment runs.
+
+For each run show:
+- experiment ID
+- model
+- dataset
+- configuration
+- Macro-F1
+- Accuracy
+- date/time
+- status
+
+Allow viewing experiment details.
+
+9. Models Page
+
+Show:
+CNN:
+Mel Spectrogram → CNN → 6-Class Softmax
+
+BiLSTM:
+MFCC → BiLSTM → 6-Class Softmax
+
+Show:
+- architecture summary
+- parameter count
+- current trained model status
+- checkpoint information
+
+Do not create a detailed BiLSTM architecture visualization if it is unnecessary for the user's presentation; this page is for application functionality.
+
+10. Settings / Configuration
+
+Provide controls or display for:
+- dataset paths
+- model configuration
+- feature configuration
+- inference configuration
+
+Avoid exposing complicated implementation details unnecessarily.
+
+--------------------------------------------------
+FRONTEND ARCHITECTURE
+--------------------------------------------------
+
+Create reusable components rather than putting everything into one file.
+
+Organize roughly as:
+
+frontend/
+├── src/
+│   ├── components/
+│   ├── pages/
+│   ├── layouts/
+│   ├── charts/
+│   ├── api/
+│   ├── types/
+│   ├── hooks/
+│   └── utils/
+├── public/
+└── package.json
+
+Create a central API layer so frontend code does not directly construct fetch requests everywhere.
+
+Create typed models/interfaces for:
+- DatasetSummary
+- AudioSample
+- Prediction
+- ModelMetrics
+- Experiment
+- ConfusionMatrix
+- NoiseResult
+- IntensityResult
+
+At this point, implement frontend mock data only where necessary to make the UI functional before the backend exists.
+
+Clearly separate mock data from real API responses.
+
+The complete frontend must run successfully before moving to ML implementation.
+
+--------------------------------------------------
+STEP 2 — BACKEND API AND DATA CONTRACT
+--------------------------------------------------
+
+After the frontend structure is working, implement the FastAPI backend.
+
+The backend must expose clean endpoints for:
+
+GET /api/health
+
+GET /api/dataset/summary
+
+GET /api/dataset/distribution
+
+GET /api/audio/{id}
+
+POST /api/audio/upload
+
+POST /api/predict/cnn
+
+POST /api/predict/bilstm
+
+POST /api/predict
+
+GET /api/models
+
+GET /api/models/{model}
+
+GET /api/experiments
+
+GET /api/experiments/{id}
+
+GET /api/results/comparison
+
+GET /api/results/noise
+
+GET /api/results/intensity
+
+GET /api/results/confusion-matrix/{model}
+
+The exact endpoint structure may be adjusted if a cleaner design is required.
+
+Define request/response schemas using Pydantic.
+
+Implement CORS/configuration correctly for local frontend-backend development.
+
+The frontend must then switch from mock data to real API responses incrementally.
+
+--------------------------------------------------
+STEP 3 — PROJECT SETUP, CONFIGURATION AND DATA STORAGE
+--------------------------------------------------
+
+Create the backend/ML project structure and environment.
+
+Use a structure similar to:
+
+Resonance/
+├── frontend/
+├── backend/
+│   ├── api/
+│   ├── services/
+│   └── main.py
+├── data/
+│   ├── raw/
+│   ├── processed/
+│   ├── noisy/
+│   └── metadata/
+├── features/
+│   ├── mel_spectrograms/
+│   └── mfcc/
+├── models/
+│   ├── cnn/
+│   └── bilstm/
+├── src/
+│   ├── data/
+│   ├── preprocessing/
+│   ├── features/
+│   ├── models/
+│   ├── training/
+│   ├── evaluation/
+│   ├── noise/
+│   └── visualization/
+├── experiments/
+├── results/
+├── configs/
+├── scripts/
+└── README.md
+
+Create centralized configuration for:
+- dataset paths
+- sample rate
+- duration
+- feature extraction
+- model configuration
+- training
+- tuning
+- noise generation
+- output directories
+- seeds
+
+Do not hard-code machine-specific paths.
+
+--------------------------------------------------
+STEP 4 — DATASET INGESTION, LABEL MAPPING AND METADATA
+--------------------------------------------------
+
+Implement RAVDESS and CREMA-D ingestion according to the Markdown specification.
+
+RAVDESS:
+- speech portion
+- six common emotions
+- exclude Calm and Surprised
+- retain speaker ID
+- retain intensity
+
+CREMA-D:
+- six emotions
+- retain speaker ID
+- retain Low/Medium/High/Unspecified labels
+
+Create unified metadata with fields such as:
+
+sample_id
+source_dataset
+original_filename
+audio_path
+speaker_id
+emotion
+emotion_id
+intensity
+gender
+split
+
+For noisy samples also support:
+
+clean_audio_path
+noisy_audio_path
+noise_type
+snr
+
+Emotion order must always be:
+
+Anger
+Disgust
+Fear
+Happiness
+Sadness
+Neutral
+
+Create dataset validation utilities.
+
+Do not train until the dataset is successfully validated.
+
+--------------------------------------------------
+STEP 5 — SPEAKER-INDEPENDENT SPLITTING AND AUDIO PREPROCESSING
+--------------------------------------------------
+
+Implement preprocessing and speaker-disjoint train/validation/test splitting together.
+
+No speaker may appear in multiple splits.
+
+Validate the split programmatically.
+
+Preprocessing:
+- common sample rate
+- common channel format
+- amplitude normalization
+- padding/truncation
+
+Save:
+- train.csv
+- validation.csv
+- test.csv
+
+Do not leak test information into training or tuning.
+
+--------------------------------------------------
+STEP 6 — MEL SPECTROGRAM AND MFCC FEATURE PIPELINES
+--------------------------------------------------
+
+Implement both feature pipelines.
+
+CNN:
+Audio → Mel Spectrogram
+
+BiLSTM:
+Audio → MFCC Sequence
+
+Make parameters configurable.
+
+Cache extracted features.
+
+Create visualization utilities for:
+- waveform
+- Mel spectrogram
+- MFCC
+
+Ensure the exact same preprocessing logic is used before both feature pipelines.
+
+--------------------------------------------------
+STEP 7 — CNN AND BILSTM IMPLEMENTATION
+--------------------------------------------------
+
+Implement the baseline architectures exactly as specified.
+
+CNN:
+
+Mel Spectrogram
+↓
+Conv2D — 32
+↓
+Max Pool
+↓
+Conv2D — 64
+↓
+Max Pool
+↓
+Conv2D — 128
+↓
+Global Average Pooling
+↓
+Dense
+↓
+Dropout
+↓
+6-Class Softmax
+
+BiLSTM:
+
+MFCC Sequence
+↓
+BiLSTM — 128
+↓
+BiLSTM — 64
+↓
+Dropout
+↓
+Dense
+↓
+6-Class Softmax
+
+Keep both models modular.
+
+Provide:
+- forward/inference
+- save/load
+- model summary
+- parameter count
+- prediction probabilities
+
+--------------------------------------------------
+STEP 8 — TRAINING AND HYPERPARAMETER TUNING
+--------------------------------------------------
+
+Implement reusable training pipelines for both models.
+
+Support:
+- training
+- validation
+- checkpointing
+- early stopping if configured
+- logging
+- best-model selection
+- reproducibility
+
+Initial CNN configuration:
+- Adam
+- learning rate 1e-3
+- batch size 32
+- around 50 epochs
+- dropout 0.3
+- cross-entropy
+
+These are starting values only.
+
+Tuning candidates:
+
+Learning rate:
+1e-2, 1e-3, 1e-4
+
+Batch:
+16, 32, 64
+
+Dropout:
+0.2, 0.3, 0.5
+
+Mel bands:
+64, 128, 256
+
+Do practical tuning rather than blindly running every possible combination.
+
+Select models using validation Macro-F1.
+
+Never use the test set for tuning.
+
+--------------------------------------------------
+STEP 9 — CLEAN EVALUATION
+--------------------------------------------------
+
+Evaluate both models on the unseen test speakers.
+
+Metrics:
+- Accuracy
+- Precision
+- Recall
+- Macro-F1
+- Per-class F1
+- Confusion matrix
+
+Generate:
+- CSV
+- JSON
+- charts
+- confusion matrices
+- comparison tables
+
+Connect all outputs to the frontend Model Comparison and Experiments pages.
+
+No fabricated results.
+
+--------------------------------------------------
+STEP 10 — NOISE AND ROBUSTNESS EXPERIMENT
+--------------------------------------------------
+
+Generate noisy data from clean recordings.
+
+Noise:
+- White/Gaussian
+- Babble/Background
+- Traffic
+
+SNR:
+20 dB
+10 dB
+5 dB
+
+Retain clean-to-noisy mappings.
+
+Evaluate both CNN and BiLSTM.
+
+Expose results through the backend.
+
+Display them in the frontend Robustness page.
+
+--------------------------------------------------
+STEP 11 — DENOISING
+--------------------------------------------------
+
+Implement optional conventional denoising:
+
+- spectral gating
+- Wiener filtering
+
+Pipeline:
+
+Noisy Speech
+↓
+Denoising
+↓
+Mel/MFCC
+↓
+CNN/BiLSTM
+↓
+Prediction
+
+Evaluate whether denoising recovers performance.
+
+Do not create a third deep-learning architecture.
+
+--------------------------------------------------
+STEP 12 — INTENSITY ANALYSIS
+--------------------------------------------------
+
+RAVDESS:
+Normal vs Strong
+
+CREMA-D:
+Low / Medium / High / Unspecified
+
+Do not merge these scales.
+
+Generate CNN and BiLSTM metrics by intensity.
+
+Expose the results through the backend and frontend.
+
+--------------------------------------------------
+STEP 13 — FINAL COMPARATIVE ANALYSIS
+--------------------------------------------------
+
+Compare CNN and BiLSTM across:
+
+- clean
+- noisy
+- denoised
+- RAVDESS Normal
+- RAVDESS Strong
+- CREMA-D native intensity categories
+
+Generate:
+- overall comparison
+- per-class performance
+- confusion matrices
+- noise degradation plots
+- intensity plots
+
+Automatically identify observations from the actual results.
+
+Do not fabricate explanations or causal claims.
+
+--------------------------------------------------
+STEP 14 — VISUALIZATIONS AND RESEARCH OUTPUTS
+--------------------------------------------------
+
+Generate presentation/research-ready outputs:
+
+- dataset distribution
+- emotion distribution
+- waveform
+- Mel spectrogram
+- MFCC
+- training curves
+- CNN confusion matrix
+- BiLSTM confusion matrix
+- CNN vs BiLSTM metrics
+- noise robustness
+- intensity analysis
+- denoising recovery
+
+Keep visualization style academic and minimal.
+
+--------------------------------------------------
+STEP 15 — EXPERIMENT TRACKING, DOCUMENTATION AND FINAL INTEGRATION
+--------------------------------------------------
+
+Every experiment must save:
+
+- experiment ID
+- timestamp
+- model
+- dataset
+- configuration
+- hyperparameters
+- seed
+- history
+- validation metrics
+- test metrics
+- checkpoint
+
+The frontend Experiments page must display these records.
+
+Create final documentation containing:
+- project overview
+- architecture
+- setup
+- dataset preparation
+- frontend
+- backend
+- preprocessing
+- CNN
+- BiLSTM
+- training
+- tuning
+- evaluation
+- noise experiment
+- intensity analysis
+- results
+- limitations
+- conclusions
+
+==================================================
+IMPORTANT DEVELOPMENT RULES
+==================================================
+
+1. FRONTEND FIRST.
+
+Do not begin with model training.
+
+The first implementation milestone is a working frontend with all major pages, navigation, layouts, charts, upload flow and mock API data.
+
+2. Do not make the frontend throwaway code.
+
+Design the API contracts early so the real backend can plug into it.
+
+3. Replace mock data progressively.
+
+Once a real endpoint exists, connect the corresponding frontend page to it.
+
+4. Do not create unnecessary implementation steps.
+
+Group related work:
+- dataset ingestion + metadata
+- preprocessing + split
+- feature extraction
+- model implementation
+- training + tuning
+- evaluation
+- robustness
+- final integration
+
+5. Run and verify each stage before proceeding.
+
+6. Start with small sample subsets before processing the complete dataset.
+
+7. Cache expensive feature extraction.
+
+8. Preserve speaker identity at every stage.
+
+9. Prevent speaker leakage.
+
+10. Never use test data for tuning.
+
+11. Never fabricate metrics.
+
+12. Never silently alter the six emotion classes.
+
+13. Never treat RAVDESS and CREMA-D intensity scales as equivalent.
+
+14. Keep CNN and BiLSTM as separate implementations.
+
+15. Keep the UI professional and technically focused.
+
+16. Do not add authentication, cloud deployment, payments, notifications, chatbots, or unrelated functionality.
+
+17. Do not add unnecessary database infrastructure unless the implementation genuinely requires it.
+
+==================================================
+FINAL DELIVERABLE
+==================================================
+
+At the end, the project should be a working full-stack research application:
+
+Frontend
+    ↓
+FastAPI Backend
+    ↓
+Dataset / Feature / Model Services
+    ↓
+CNN + BiLSTM
+    ↓
+Evaluation
+    ↓
+Experiment Results
+    ↓
+Frontend Visualization
+
+The user should be able to:
+
+1. Open Resonance in a browser.
+2. View the dataset summary.
+3. Inspect an audio sample.
+4. View its waveform, Mel spectrogram and MFCC.
+5. Run CNN and BiLSTM inference on audio.
+6. View emotion probabilities.
+7. Compare CNN and BiLSTM.
+8. View clean/noisy/denoised results.
+9. View intensity analysis.
+10. View confusion matrices and research metrics.
+11. Inspect saved experiments.
+
+At the end, report clearly:
+
+- what has been fully implemented
+- what was tested successfully
+- what datasets are still required
+- what experiments have actually been run
+- where the generated results are stored
+- whether any parts remain pending because real data/training are required
+
+Do not claim an experiment is complete unless it was actually executed.

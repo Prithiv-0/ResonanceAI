@@ -1,0 +1,70 @@
+@import "tailwindcss";
+
+@theme {
+  --font-sans: "Inter", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+
+  /* Dark navy text scale */
+  --color-navy-950: #0b1b33;
+  --color-navy-900: #11264a;
+  --color-navy-800: #1b3560;
+  --color-navy-700: #2c4a78;
+  --color-navy-600: #4a6285;
+  --color-navy-500: #66799a;
+  --color-navy-400: #8c9bb4;
+  --color-navy-300: #b3bed0;
+  --color-navy-200: #d6dce7;
+  --color-navy-100: #e8ecf3;
+  --color-navy-50: #f5f7fa;
+
+  /* Restrained teal accent */
+  --color-brand-800: #0a5961;
+  --color-brand-700: #0b6f78;
+  --color-brand-600: #0f8791;
+  --color-brand-500: #1a9ea8;
+  --color-brand-100: #d9eff1;
+  --color-brand-50: #eef8f9;
+
+  /* Muted blue accent */
+  --color-steel-700: #3e5f8c;
+  --color-steel-600: #4d6f9c;
+  --color-steel-500: #6c8ab1;
+  --color-steel-300: #aebfd6;
+  --color-steel-100: #e3eaf4;
+}
+
+@layer base {
+  html { -webkit-font-smoothing: antialiased; }
+  body {
+    @apply bg-white font-sans text-navy-900 text-[14px] leading-relaxed;
+  }
+  h1 { @apply text-xl font-semibold tracking-tight text-navy-950; }
+  h2 { @apply text-[15px] font-semibold text-navy-950; }
+  h3 { @apply text-[13px] font-semibold text-navy-900; }
+  button { @apply cursor-pointer; }
+  button:disabled { @apply cursor-not-allowed; }
+  :focus-visible { @apply outline-2 outline-offset-2 outline-brand-600; }
+}
+
+@layer components {
+  .panel { @apply rounded-md border border-navy-200 bg-white; }
+  .panel-pad { @apply p-4; }
+  .panel-head { @apply flex items-center justify-between gap-3 border-b border-navy-100 px-4 py-2.5; }
+  .label { @apply text-[11px] font-medium uppercase tracking-wider text-navy-500; }
+  .btn {
+    @apply inline-flex items-center justify-center gap-1.5 rounded-md border px-3 py-1.5 text-[13px] font-medium transition-colors;
+  }
+  .btn-primary { @apply border-brand-700 bg-brand-700 text-white hover:bg-brand-800 disabled:border-navy-200 disabled:bg-navy-100 disabled:text-navy-400; }
+  .btn-secondary { @apply border-navy-200 bg-white text-navy-800 hover:bg-navy-50 disabled:text-navy-300; }
+  .input {
+    @apply rounded-md border border-navy-200 bg-white px-2.5 py-1.5 text-[13px] text-navy-900 focus:border-brand-600;
+  }
+  .tbl { @apply w-full border-collapse text-left text-[13px]; }
+  .tbl th { @apply border-b border-navy-200 bg-navy-50 px-3 py-2 text-[11px] font-semibold uppercase tracking-wider text-navy-600; }
+  .tbl td { @apply border-b border-navy-100 px-3 py-2 align-top; }
+  .tbl tr:last-child td { @apply border-b-0; }
+  .mono { @apply font-mono text-[12px]; }
+}
+
+.recharts-text { font-family: var(--font-sans); }
+.recharts-cartesian-axis-tick-value { fill: var(--color-navy-600); font-size: 11px; }

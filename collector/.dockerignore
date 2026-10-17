@@ -1,0 +1,10 @@
+.git
+.gitignore
+frontend/node_modules
+frontend/dist
+backend/__pycache__
+dataset
+*.pyc
+*.pyo
+.DS_Store
+Thumbs.db

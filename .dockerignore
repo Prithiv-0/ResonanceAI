@@ -1,0 +1,34 @@
+# Git and system files
+.git/
+.gitignore
+.gitattributes
+.DS_Store
+Thumbs.db
+
+# Node.js
+**/node_modules/
+**/npm-debug.log*
+frontend/dist/
+
+# Python cache and temporary files
+**/__pycache__/
+**/*.pyc
+**/*.pyo
+**/*.pyd
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Logs and screenshots
+logs/
+screenshots/
+collector/
+prep_guides/
+samples/
+*.bat
+*.ps1
+
+# IDE and agent files
+.gemini/
+.idea/
+.vscode/

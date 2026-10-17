@@ -1,0 +1,21 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.env
+venv/
+env/
+
+# Frontend
+frontend/node_modules/
+frontend/dist/
+*.local
+
+# Local Dataset recordings (keep code, don't commit collected audio to git)
+dataset/audio/
+dataset/metadata.csv
+
+# OS
+.DS_Store
+Thumbs.db

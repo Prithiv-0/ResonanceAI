@@ -1,0 +1,15 @@
+services:
+  - type: web
+    name: resonance-studio-booth
+    runtime: docker
+    dockerfilePath: ./Dockerfile
+    dockerContext: .
+    plan: free
+    region: oregon
+    envVars:
+      - key: PORT
+        value: 8000
+    disk:
+      name: dataset-data
+      mountPath: /app/dataset
+      sizeGB: 5

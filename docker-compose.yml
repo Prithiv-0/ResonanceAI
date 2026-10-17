@@ -1,0 +1,13 @@
+services:
+  resonance:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: resonance-ser-app
+    ports:
+      - "7860:7860"
+    environment:
+      - PORT=7860
+      - RESONANCE_CORS_ORIGINS=*
+      - RESONANCE_MAX_UPLOAD_MB=25
+    restart: unless-stopped

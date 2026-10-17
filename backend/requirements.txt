@@ -1,0 +1,15 @@
+fastapi>=0.110
+uvicorn>=0.29
+python-multipart>=0.0.9
+numpy>=1.26
+scipy>=1.11
+librosa>=0.10
+scikit-learn>=1.4
+soundfile>=0.12
+torch>=2.0
+transformers>=4.36
+safetensors>=0.4
+# test-only
+pytest>=8.0
+httpx>=0.27
+

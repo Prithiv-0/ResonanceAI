@@ -1,0 +1,12 @@
+services:
+  - type: web
+    name: resonance-ser
+    env: docker
+    dockerfilePath: ./Dockerfile
+    plan: free
+    region: oregon
+    envVars:
+      - key: RESONANCE_CORS_ORIGINS
+        value: "*"
+      - key: RESONANCE_MAX_UPLOAD_MB
+        value: "25"
