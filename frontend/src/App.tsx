@@ -1,4 +1,4 @@
-import { BrowserRouter, Routes, Route } from 'react-router-dom'
+import { HashRouter, Routes, Route, Navigate } from 'react-router-dom'
 import { SessionProvider } from './state/session'
 import Layout from './components/Layout'
 import AudioAnalysis from './pages/AudioAnalysis'
@@ -15,7 +15,7 @@ import Architecture from './pages/Architecture'
 export default function App() {
   return (
     <SessionProvider>
-      <BrowserRouter>
+      <HashRouter>
         <Routes>
           <Route element={<Layout />}>
             <Route path="/" element={<AudioAnalysis />} />
@@ -28,9 +28,10 @@ export default function App() {
             <Route path="/gan-augmentation" element={<GanAugmentation />} />
             <Route path="/testing" element={<Testing />} />
             <Route path="/architecture" element={<Architecture />} />
+            <Route path="*" element={<Navigate to="/" replace />} />
           </Route>
         </Routes>
-      </BrowserRouter>
+      </HashRouter>
     </SessionProvider>
   )
 }

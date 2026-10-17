@@ -10,7 +10,22 @@ import type {
   Settings,
 } from '../types'
 
-const BASE: string = (import.meta.env.VITE_API_BASE as string | undefined) ?? '/api'
+function getApiBase(): string {
+  if (import.meta.env.VITE_API_BASE) {
+    return import.meta.env.VITE_API_BASE as string
+  }
+  if (typeof window !== 'undefined') {
+    const custom = (window as unknown as { __RESONANCE_API_BASE__?: string }).__RESONANCE_API_BASE__ || localStorage.getItem('RESONANCE_API_BASE')
+    if (custom) return custom
+    const host = window.location.hostname
+    if (host.includes('hf.space') || host.includes('huggingface')) {
+      return 'https://resonanceai-pk9z.onrender.com/api'
+    }
+  }
+  return '/api'
+}
+
+const BASE: string = getApiBase()
 
 export class ApiRequestError extends Error {
   code: string
